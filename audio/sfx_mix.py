@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Lay a few sound effects under a finished (voiced) Repatory video.
 
-    python3 sfx_mix.py <in.mp4> <cues.json> <out.mp4> [--sfx <dir>]
+    python3 sfx_mix.py <in.mp4> <cues.json> <out.mp4> [--sfx <dir>] [--ranking]
 
 cues.json: {"cues": [{"t": 3.1, "s": "whoosh_soft"}, {"t": 6.4, "s": "plate_clank", "db": -2}]}
   t  = second where the sound's main hit should land (whooshes peak ~0.3 s in,
@@ -10,7 +10,8 @@ cues.json: {"cues": [{"t": 3.1, "s": "whoosh_soft"}, {"t": 6.4, "s": "plate_clan
   db = optional trim on top of the default level for that sound (keep it within ±4)
 
 DON'T-OVERDO-IT RULES (enforced):
-  * at most 6 cues per video (warns at 5+)
+  * at most 6 cues per video (warns at 5+); ranking videos pass --ranking,
+    which allows 7 so each entry can get its own pop_card/tick reveal cue
   * nothing before 2.0 s: the opening logo stays silent (owner rule)
   * at least 0.5 s between cues
   * default levels sit well under the voice (voice ~ -20 dB mean; effects peak
@@ -34,10 +35,11 @@ def main():
         sys.exit(__doc__)
     src, cue_path, out = a[:3]
     sfx = a[a.index("--sfx") + 1] if "--sfx" in a else os.path.join(os.path.dirname(os.path.abspath(__file__)), "sfx")
+    max_cues = 7 if "--ranking" in a else MAX_CUES
     cues = sorted(json.load(open(cue_path))["cues"], key=lambda c: c["t"])
-    if len(cues) > MAX_CUES:
-        sys.exit(f"{len(cues)} cues: too many (max {MAX_CUES}). Keep only the biggest moments.")
-    if len(cues) >= 5:
+    if len(cues) > max_cues:
+        sys.exit(f"{len(cues)} cues: too many (max {max_cues}). Keep only the biggest moments.")
+    if len(cues) >= 5 and "--ranking" not in a:
         print(f"note: {len(cues)} cues, that's the upper end; make sure each one earns its place")
     last = -9
     for c in cues:
